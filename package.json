@@ -1,6 +1,6 @@
 {
   "name": "bulletin-local-meteo-france",
-  "version": "0.0.5",
+  "version": "0.0.6",
   "private": true,
   "type": "module",
   "description": "Bulletin météo local à partir des API de données ouvertes de Météo-France.",
