@@ -4,3 +4,7 @@ dist/
 .env
 .env.*
 *.log
+
+.private/
+*.private.json
+site.private.json

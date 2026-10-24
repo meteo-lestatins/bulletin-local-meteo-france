@@ -43,3 +43,16 @@ export async function findUpdateRun(api, repository, workflow, branch, requestId
     + '/runs?event=workflow_dispatch&branch=' + encodeURIComponent(branch) + '&per_page=30');
   return result.workflow_runs.find(run => run.display_title === 'Mise à jour ' + requestId);
 }
+
+export function adminTokenFromConfig(text, repository) {
+  let config;
+  try { config = JSON.parse(text); } catch { throw new Error('Fichier privé JSON invalide.'); }
+  if (typeof config?.site?.githubRepository !== 'string' ||
+      config.site.githubRepository.toLowerCase() !== repository.toLowerCase()) {
+    throw new Error('Ce fichier privé appartient à un autre site.');
+  }
+  if (typeof config.githubToken !== 'string' || !config.githubToken.trim() || /[\r\n]/.test(config.githubToken)) {
+    throw new Error('Renseigner githubToken dans le fichier privé.');
+  }
+  return config.githubToken.trim();
+}

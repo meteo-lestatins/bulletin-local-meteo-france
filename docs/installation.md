@@ -1,19 +1,18 @@
-# Installation
+# Configuration privée
 
-Le dépôt du site reprend le code commun. Seul site.json contient les paramètres du lieu ; aucun code ni workflow propre à un site.
+Tout le code, les workflows et le modèle de configuration sont dans ce dépôt. Les installations sont des forks sans modification du code.
 
-Profil : identifiant, nom, lieu, latitude, longitude, département et fuseau horaire (exemple : test/fixtures/site.json). Facultatifs : headerAltitude, headingPrefix, publicUrl, githubRepository, githubBranch, meteoTokenSecret.
+Copier site.private.example.json dans un fichier site.private.json, puis compléter :
+- site : titre, lieu, coordonnées, département, fuseau, adresse publique et dépôt GitHub ;
+- githubToken : jeton du dépôt du site, autorisations Contents, Workflows et Actions en écriture ;
+- meteoFranceToken : jeton des API Météo-France.
 
-Secrets GitHub du dépôt du site :
-- METEO_FRANCE_API_KEY : API Météo-France (ou le nom existant indiqué par meteoTokenSecret).
-- BULLETIN_UPDATE_TOKEN : jeton limité à ce dépôt, Contents et Workflows en écriture, pour récupérer aussi les évolutions des workflows communs.
+Garder ce fichier privé. Dans chaque fork, enregistrer son contenu dans un seul secret GitHub Actions nommé BULLETIN_CONFIG. Aucun fichier propre au lieu n’est à commiter. Les Actions ne publient que les paramètres du lieu nécessaires au bulletin ; les jetons restent privés.
 
-Dans admin.html, saisir un jeton autorisant Actions en écriture sur ce dépôt, puis **Mettre à jour le site**. Il reste en mémoire uniquement pendant la demande. Le workflow fusionne la branche main de nicklausFR/bulletin-local-meteo-france, conserve site.json, puis lance la construction et la publication. La page suit leur progression. Aucun serveur privé.
+Dans l’administration, choisir ce même fichier privé puis demander la mise à jour. Le fichier est lu localement ; son jeton GitHub autorise la demande. Le code commun est récupéré, puis le site est construit et publié avec sa configuration privée.
 
-La mise à jour est volontaire. La collecte météo utilise la version déjà installée : PIAF toutes les cinq minutes, autres prévisions chaque heure, sous réserve des délais de GitHub Actions.
+En local : node scripts/private-config.mjs --file=/chemin/site.private.json, puis npm run build -- --profile=.cache/site-config/site.json.
 
-Pour un nouveau site : fork du dépôt commun, ajout de site.json, secrets ci-dessus et GitHub Pages avec GitHub Actions. Pour un dépôt existant, intégrer la branche de préparation en conservant son historique de fusion (pas de squash), afin de garder un ancêtre commun avec la source.
+Activer Actions et choisir GitHub Actions pour Pages sur le fork. La collecte garde la version installée jusqu’à une mise à jour volontaire : PIAF toutes les cinq minutes, autres prévisions chaque heure, sous réserve des délais de GitHub Actions.
 
-En local : npm run build -- --profile=/chemin/site.json --state=/chemin/etat.json.
-
-Les branches de préparation ne publient rien. L’activation sur la branche principale et le déploiement restent à la charge de l’utilisateur.
+Un dépôt indépendant déjà existant ne devient pas un fork en fusionnant une branche. Les anciennes branches de préparation ne changent pas ce statut. La migration vers de vrais forks et leur activation doivent préserver les sites actuellement publiés.

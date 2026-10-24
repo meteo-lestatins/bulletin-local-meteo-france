@@ -1,4 +1,4 @@
-import { requestSiteUpdate, findUpdateRun } from './admin-api.js';
+import { requestSiteUpdate, findUpdateRun, adminTokenFromConfig } from './admin-api.js';
 const config = window.METEO_RUNTIME_CONFIG || {};
 const management = config.management || {};
 const form = document.querySelector('#update-form');
@@ -33,11 +33,14 @@ form.addEventListener('submit', async event => {
   event.preventDefault();
   button.disabled = true;
   link.hidden = true;
-  const input = document.querySelector('#github-token');
-  let token = input.value.trim();
-  input.value = '';
+  const input = document.querySelector('#private-config');
+  let token = '';
   const requestId = crypto.randomUUID();
   try {
+    const file = input.files?.[0];
+    if (!file || file.size > 65536) throw new Error('Choisir le petit fichier JSON privé de ce site.');
+    token = adminTokenFromConfig(await file.text(), management.repository);
+    input.value = '';
     status.textContent = 'Envoi de la demande…';
     const api = await requestSiteUpdate({ ...management, token, requestId });
     await waitForRun(api, 'update-site.yml', requestId, 'Récupération du code commun…');

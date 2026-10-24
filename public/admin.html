@@ -14,9 +14,9 @@
     <p>Récupérer la dernière version du code commun en conservant la configuration de ce lieu.</p>
     <p id="versions"></p>
     <form id="update-form">
-      <label for="github-token">Jeton GitHub du dépôt de ce site</label>
-      <input id="github-token" type="password" autocomplete="off" spellcheck="false" required>
-      <p class="hint">Autorisation Actions en écriture. Le jeton reste uniquement en mémoire pendant cette opération.</p>
+      <label for="private-config">Fichier privé de configuration du site</label>
+      <input id="private-config" type="file" accept=".json,application/json" required>
+      <p class="hint">Le fichier est lu sur cet appareil et reste privé. Son jeton GitHub autorise la mise à jour.</p>
       <button id="update-button" type="submit">Mettre à jour le site</button>
     </form>
     <p id="update-status" role="status" aria-live="polite"></p>

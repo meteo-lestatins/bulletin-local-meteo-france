@@ -7,13 +7,13 @@ import { fileURLToPath } from 'node:url';
 export const upstreamUrl = 'https://github.com/nicklausFR/bulletin-local-meteo-france.git';
 export async function updateSource({ cwd, source = upstreamUrl, branch = 'main' }) {
   const git = (...args) => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
-  const profile = await readFile(path.join(cwd, 'site.json'), 'utf8');
+  const profile = await readFile(path.join(cwd, 'site.json'), 'utf8').catch(error => { if (error.code === 'ENOENT') return null; throw error; });
   if (git('status', '--porcelain')) throw new Error('Le dépôt contient des modifications locales.');
   const before = git('rev-parse', 'HEAD');
   git('fetch', '--no-tags', source, branch);
   try {
     git('merge', '--no-edit', 'FETCH_HEAD');
-    if (await readFile(path.join(cwd, 'site.json'), 'utf8') !== profile) throw new Error('Le profil du site a été modifié par la source.');
+    if (profile !== null && await readFile(path.join(cwd, 'site.json'), 'utf8') !== profile) throw new Error('Le profil du site a été modifié par la source.');
   } catch (error) {
     try { git('merge', '--abort'); } catch {}
     // Only a clean checkout is accepted above; restore it if the source changed site.json.

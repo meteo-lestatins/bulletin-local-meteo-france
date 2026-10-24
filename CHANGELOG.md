@@ -4,3 +4,4 @@
 
 24/10/2026 14:12 — v0.002 — Identité, composants et profil initial neutres ; aucun lieu ni coordonnées prédéfinis.
 24/10/2026 16:47 — v0.003 — Administration commune pour demander la mise à jour du site depuis la source principale, en conservant sa configuration.
+24/10/2026 19:28 — v0.004 — Configuration privée unique par installation ; administration utilisant ce fichier, sans saisie séparée des jetons.

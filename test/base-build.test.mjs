@@ -102,3 +102,23 @@ test('la reconstruction fusionne les collectes concurrentes et garde chaque sour
   await assert.rejects(prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json', updates: 'updates' }), /autre lieu/);
   await assert.rejects(prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json', updates: ['../outside'] }), /dossier de travail/);
 });
+
+test('a private configuration can build the bulletin without including either credential in runtime files', async () => {
+  const { preparePrivateConfig } = await import('../scripts/private-config.mjs');
+  const { profilePath } = await preparePrivateConfig({
+    workspace: root,
+    text: JSON.stringify({
+      site: { id:'example',name:'Bulletin',place:'Exemple',latitude:48.8566,longitude:2.3522,
+        department:'75',timezone:'Europe/Paris',githubRepository:'example/weather' },
+      githubToken:'github-private-build-fixture',meteoFranceToken:'meteo-private-build-fixture'
+    })
+  });
+  build('--profile=' + profilePath);
+  for (const file of ['runtime-config.js','index.html','manifest.webmanifest','data/dashboard.json','data/week.json']) {
+    const text = await readFile(path.join(root,'dist',file),'utf8');
+    assert.equal(text.includes('github-private-build-fixture'),false);
+    assert.equal(text.includes('meteo-private-build-fixture'),false);
+  }
+  const configText = await readFile(path.join(root,'dist/runtime-config.js'),'utf8');
+  assert.ok(configText.includes('example/weather'));
+});

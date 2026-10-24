@@ -32,18 +32,21 @@ jobs:
       ready: ${{ steps.bulletin.outputs.site-directory != '' }}
     steps:
       - uses: actions/checkout@v4
-      - name: Lire la configuration du lieu
+      - name: Lire le fichier privé
         id: config
+        env:
+          BULLETIN_CONFIG: ${{ secrets.BULLETIN_CONFIG }}
+        run: node scripts/private-config.mjs
+      - name: Choisir la collecte
+        id: collect
         env:
           REQUESTED_GROUP: ${{ inputs.group }}
           SCHEDULE: ${{ github.event.schedule }}
         run: |
           node --input-type=module <<'NODE'
-          import { readSiteProfile } from './sites/profiles.mjs';
           import { appendFileSync } from 'node:fs';
-          const profile = await readSiteProfile('site.json');
           const group = process.env.REQUESTED_GROUP || (process.env.SCHEDULE === '17 * * * *' ? 'forecast' : 'piaf');
-          appendFileSync(process.env.GITHUB_OUTPUT, 'secret=' + (profile.meteoTokenSecret || 'METEO_FRANCE_API_KEY') + '\ngroup=' + group + '\n');
+          appendFileSync(process.env.GITHUB_OUTPUT, 'group=' + group + '\n');
           NODE
       - uses: actions/cache/restore@v4
         with:
@@ -54,12 +57,10 @@ jobs:
         id: bulletin
         uses: ./
         with:
-          profile: site.json
+          profile: ${{ steps.config.outputs.profile }}
           state: .cache/weather/site.json
-          collect: ${{ steps.config.outputs.group != 'cached' }}
-          group: ${{ steps.config.outputs.group == 'cached' && 'all' || steps.config.outputs.group }}
-        env:
-          METEO_FRANCE_API_KEY: ${{ secrets[steps.config.outputs.secret] }}
+          collect: ${{ steps.collect.outputs.group != 'cached' }}
+          group: ${{ steps.collect.outputs.group == 'cached' && 'all' || steps.collect.outputs.group }}
       - name: Conserver les acquisitions disponibles
         if: always() && hashFiles('.cache/weather/site.json') != ''
         uses: actions/cache/save@v4
