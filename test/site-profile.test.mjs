@@ -11,7 +11,7 @@ const input = () => {
 };
 
 test('le profil externe conserve les paramètres du lieu et les fonctions du socle', () => {
-  const profile = normalizeSiteProfile({ ...input(), id: 'exemple', headingPrefix: 'Bulletin', publicUrl: 'https://weather.example/bulletin' });
+  const profile = normalizeSiteProfile({ ...input(), id: 'exemple', publicUrl: 'https://weather.example/bulletin' });
   assert.equal(profile.id, 'exemple');
   assert.equal(profile.publicUrl, 'https://weather.example/bulletin/');
   assert.equal(profile.forecastDays, 16);
@@ -56,4 +56,15 @@ test('la restauration refuse les données d’un autre lieu et conserve le cache
   const result = await restorePublishedWeather({ profile, entry: cached, fetchImpl: async () => { throw new Error('panne'); } });
   assert.deepEqual(result.entry, cached);
   assert.equal(result.warnings.length, 2);
+});
+
+test('the internal identifier is generated from coordinates and survives a title change', () => {
+  const input = { name:'Bulletin complet',latitude:48.8566,longitude:2.3522 };
+  const first = normalizeSiteProfile(input);
+  const renamed = normalizeSiteProfile({...input,name:'Autre titre'});
+  assert.equal(first.name,'Bulletin complet');
+  assert.equal(first.place,'Bulletin complet');
+  assert.match(first.id,/^site-[a-f0-9]{16}$/);
+  assert.equal(first.id,renamed.id);
+  assert.notEqual(first.id,normalizeSiteProfile({...input,latitude:48.9}).id);
 });

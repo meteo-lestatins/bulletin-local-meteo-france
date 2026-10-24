@@ -1,3 +1,4 @@
+import { parseConfigText } from '../public/config-format.js';
 import { readFile, mkdir, writeFile, appendFile } from 'node:fs/promises';
 import path from 'node:path';
 import { realpathSync } from 'node:fs';
@@ -6,12 +7,14 @@ import { normalizeSiteProfile } from '../sites/profiles.mjs';
 
 export function parsePrivateConfig(text) {
   let value;
-  try { value = JSON.parse(text); } catch { throw new Error('Fichier privé JSON invalide.'); }
+  try { value = parseConfigText(text); } catch { throw new Error('Fichier privé invalide.'); }
   if (!value || typeof value !== 'object' || Array.isArray(value) ||
-      Object.keys(value).some(key => !['site', 'githubToken', 'meteoFranceToken'].includes(key))) {
+      Object.keys(value).some(key => !['site', 'githubToken', 'meteoFranceToken', '_comments'].includes(key))) {
     throw new Error('Configuration privée invalide : site, githubToken et meteoFranceToken attendus.');
   }
   const normalized = normalizeSiteProfile(value.site);
+  const keys = ['name', 'latitude', 'longitude', 'department', 'headerAltitude', 'timezone', 'publicUrl', 'githubRepository', 'githubBranch'];
+  for (const key of Object.keys(value.site)) if (!keys.includes(key)) throw new Error('Paramètre de configuration inconnu : ' + key);
   const site = Object.fromEntries(Object.keys(value.site).map(key => [key, normalized[key]]));
   if (!site.githubRepository) throw new Error('site.githubRepository est requis.');
   for (const key of ['githubToken', 'meteoFranceToken']) {
@@ -21,7 +24,7 @@ export function parsePrivateConfig(text) {
 }
 
 export async function preparePrivateConfig({ text, filename, workspace = process.cwd(), expectedRepository,
-  outputFile, envFile, mask = () => {} }) {
+  outputFile, envFile, exportGithubToken = false, mask = () => {} }) {
   const config = parsePrivateConfig(filename ? await readFile(filename, 'utf8') : text);
   if (expectedRepository && config.site.githubRepository.toLowerCase() !== expectedRepository.toLowerCase()) {
     throw new Error('La configuration privée appartient à un autre dépôt.');
@@ -32,7 +35,7 @@ export async function preparePrivateConfig({ text, filename, workspace = process
   const profilePath = path.join(directory, 'site.json');
   // Only the allowlisted public profile is written; credentials remain in memory / Actions secrets.
   await writeFile(profilePath, JSON.stringify(config.site, null, 2) + '\n', { mode: 0o600 });
-  if (outputFile) await appendFile(outputFile, 'profile=' + profilePath + '\n');
+  if (outputFile) await appendFile(outputFile, 'profile=' + profilePath + '\n' + (exportGithubToken ? 'github-token=' + config.githubToken + '\n' : ''));
   if (envFile) await appendFile(envFile, 'METEO_FRANCE_API_KEY=' + config.meteoFranceToken + '\n');
   return { profilePath, config };
 }
@@ -44,7 +47,7 @@ if (process.argv[1] && realpathSync(process.argv[1]) === fileURLToPath(import.me
     await preparePrivateConfig({
       filename, text: process.env.BULLETIN_CONFIG,
       expectedRepository: process.env.GITHUB_REPOSITORY,
-      outputFile: process.env.GITHUB_OUTPUT, envFile: process.env.GITHUB_ENV, mask: process.env.GITHUB_ACTIONS === 'true' ? mask : () => {}
+      outputFile: process.env.GITHUB_OUTPUT, exportGithubToken: process.env.BULLETIN_EXPORT_GITHUB_TOKEN === 'true', envFile: process.env.GITHUB_ENV, mask: process.env.GITHUB_ACTIONS === 'true' ? mask : () => {}
     });
     console.log('Configuration du lieu préparée ; jetons exclus des fichiers publics.');
   } catch (error) {

@@ -60,7 +60,7 @@ test('une installation extérieure construit son bulletin sans recopier le moteu
   const workspace = path.join(root, '.cache', 'consumer');
   await mkdir(workspace, { recursive: true });
   const profile = {
-    id: 'exemple', name: 'Bulletin <local>', place: 'Exemple', headingPrefix: 'Météo & environs',
+    id: 'exemple', name: 'Météo & environs>Exemple <local>', place: 'Exemple',
     latitude: 48.8566, longitude: 2.3522, headerAltitude: 35, department: '75', timezone: 'Europe/Paris'
   };
   await writeFile(path.join(workspace, 'site.json'), JSON.stringify(profile));
@@ -69,8 +69,8 @@ test('une installation extérieure construit son bulletin sans recopier le moteu
   await writeFile(path.join(workspace, 'state.json'), JSON.stringify(state));
   const result = await prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json' });
   const html = await readFile(path.join(result.siteDirectory, 'index.html'), 'utf8');
-  assert.ok(html.includes('<title>Météo &amp; environs&gt;Exemple</title>'));
-  assert.ok(html.includes('<span class="site-title-place">Exemple</span>'));
+  assert.ok(html.includes('<title>Météo &amp; environs&gt;Exemple &lt;local&gt;</title>'));
+  assert.ok(html.includes('<h1>Météo &amp; environs&gt;Exemple &lt;local&gt;</h1>'));
   assert.ok(!html.includes('__SITE_'));
   assert.ok(!html.includes('Lieu à définir'));
   assert.ok(html.includes('48,8566° N'));
@@ -108,7 +108,7 @@ test('a private configuration can build the bulletin without including either cr
   const { profilePath } = await preparePrivateConfig({
     workspace: root,
     text: JSON.stringify({
-      site: { id:'example',name:'Bulletin',place:'Exemple',latitude:48.8566,longitude:2.3522,
+      site: { name:'Bulletin',latitude:48.8566,longitude:2.3522,
         department:'75',timezone:'Europe/Paris',githubRepository:'example/weather' },
       githubToken:'github-private-build-fixture',meteoFranceToken:'meteo-private-build-fixture'
     })

@@ -8,3 +8,6 @@ dist/
 .private/
 *.private.json
 site.private.json
+
+*.private.conf
+site.private.conf

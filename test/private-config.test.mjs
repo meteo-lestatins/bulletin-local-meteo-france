@@ -7,7 +7,7 @@ import { parsePrivateConfig, preparePrivateConfig } from '../scripts/private-con
 import { adminTokenFromConfig } from '../public/admin-api.js';
 
 const value = () => ({
-  site: { id:'example',name:'Bulletin',place:'Exemple',latitude:48.8566,longitude:2.3522,
+  site: { name:'Bulletin',latitude:48.8566,longitude:2.3522,
     department:'75',timezone:'Europe/Paris',githubRepository:'example/weather' },
   githubToken:'github-private-fixture',meteoFranceToken:'meteo-private-fixture'
 });
@@ -38,4 +38,25 @@ test('admin reads only the GitHub authorization from the matching private file',
   assert.throws(()=>adminTokenFromConfig(JSON.stringify(config),'other/weather'),/autre site/);
   config.githubToken='';
   assert.throws(()=>adminTokenFromConfig(JSON.stringify(config),'example/weather'),/githubToken/);
+});
+
+test('comments remain private metadata and a single name configures the title', () => {
+  const config=value();
+  config._comments={'site.department':'Vigilance','site.headerAltitude':'Altitude affichée'};
+  const parsed=parsePrivateConfig(JSON.stringify(config));
+  assert.equal(parsed.site.name,'Bulletin');
+  assert.equal(parsed._comments,undefined);
+  assert.equal(parsed.site.id,undefined);
+  assert.equal(parsed.site.place,undefined);
+  config.site.headingPrefix='Unused';
+  assert.throws(()=>parsePrivateConfig(JSON.stringify(config)),/headingPrefix/);
+});
+
+test('hash comments work in Actions and admin without changing quoted hashes or escaped quotes', async () => {
+  const config=value();
+  config.site.name='Titre "complet" # local';
+  config.githubToken='github#fixture';
+  const text='# Configuration privée\n'+JSON.stringify(config,null,2).replace('"department":', '# Vigilance\n"department":')+' # fin\n';
+  assert.equal(parsePrivateConfig(text).site.name,config.site.name);
+  assert.equal(adminTokenFromConfig(text,'example/weather'),config.githubToken);
 });

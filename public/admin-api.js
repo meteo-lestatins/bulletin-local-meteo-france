@@ -1,3 +1,4 @@
+import { parseConfigText } from './config-format.js';
 export const sourceRepository = 'nicklausFR/bulletin-local-meteo-france';
 
 export function githubClient(token, fetchImpl = fetch) {
@@ -46,7 +47,7 @@ export async function findUpdateRun(api, repository, workflow, branch, requestId
 
 export function adminTokenFromConfig(text, repository) {
   let config;
-  try { config = JSON.parse(text); } catch { throw new Error('Fichier privé JSON invalide.'); }
+  try { config = parseConfigText(text); } catch { throw new Error('Fichier privé invalide.'); }
   if (typeof config?.site?.githubRepository !== 'string' ||
       config.site.githubRepository.toLowerCase() !== repository.toLowerCase()) {
     throw new Error('Ce fichier privé appartient à un autre site.');

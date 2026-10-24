@@ -38,7 +38,7 @@ form.addEventListener('submit', async event => {
   const requestId = crypto.randomUUID();
   try {
     const file = input.files?.[0];
-    if (!file || file.size > 65536) throw new Error('Choisir le petit fichier JSON privé de ce site.');
+    if (!file || file.size > 65536) throw new Error('Choisir le fichier .conf privé de ce site.');
     token = adminTokenFromConfig(await file.text(), management.repository);
     input.value = '';
     status.textContent = 'Envoi de la demande…';
