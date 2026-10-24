@@ -80,3 +80,23 @@ test('une installation extérieure construit son bulletin sans recopier le moteu
   assert.equal(manifest.name, profile.name);
   await assert.rejects(prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: '../outside.json' }), /cache doit rester/);
 });
+
+test('la reconstruction fusionne les collectes concurrentes et garde chaque source la plus récente', async () => {
+  const { prepareInheritedSite } = await import('../scripts/prepare-inherited-site.mjs');
+  const workspace = path.join(root, '.cache', 'consumer-merge');
+  await mkdir(path.join(workspace, 'updates', 'forecast'), { recursive: true });
+  const profile = { id: 'exemple', name: 'Bulletin', place: 'Exemple', latitude: 48.8566, longitude: 2.3522, department: '75', timezone: 'Europe/Paris' };
+  await writeFile(path.join(workspace, 'site.json'), JSON.stringify(profile));
+  const base = { siteId: profile.id, latitude: profile.latitude, longitude: profile.longitude };
+  const piaf = time => ({ fetchedAt: time, runTime: new Date(time).toISOString(), values: [{ seconds: 300, precipitation: .1 }] });
+  const arome = time => ({ fetchedAt: time, runTime: new Date(time).toISOString(), hours: [{ time: new Date().toISOString(), temperature: 15 }] });
+  await writeFile(path.join(workspace, 'state.json'), JSON.stringify({ ...base, piaf: piaf(300), arome: arome(100) }));
+  await writeFile(path.join(workspace, 'updates', 'forecast', 'forecast.json'), JSON.stringify({ ...base, piaf: piaf(200), arome: arome(400) }));
+  await prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json', updates: ['updates', 'absent'] });
+  const state = JSON.parse(await readFile(path.join(workspace, 'state.json'), 'utf8'));
+  assert.equal(state.piaf.fetchedAt, 300);
+  assert.equal(state.arome.fetchedAt, 400);
+  await writeFile(path.join(workspace, 'updates', 'foreign.json'), JSON.stringify({ ...base, siteId: 'autre' }));
+  await assert.rejects(prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json', updates: 'updates' }), /autre lieu/);
+  await assert.rejects(prepareInheritedSite({ workspace, profilePath: 'site.json', statePath: 'state.json', updates: ['../outside'] }), /dossier de travail/);
+});
