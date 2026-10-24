@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFile, access, mkdir, writeFile } from 'node:fs/promises';
+import { readFile, access, mkdir, writeFile, rm } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { runInNewContext } from 'node:vm';
 import path from 'node:path';
@@ -18,7 +18,8 @@ test('la base se construit seule avec ses ressources locales, sans données ni m
   const context = { window: {} };
   runInNewContext(await readFile(path.join(root, 'dist/runtime-config.js'), 'utf8'), context);
   const config = context.window.METEO_RUNTIME_CONFIG;
-  assert.equal(config.releaseNumber, '0.002');
+  const journal = await readFile(path.join(root, 'CHANGELOG.md'), 'utf8');
+  assert.equal(config.releaseNumber, [...journal.matchAll(/— v(\d+\.\d{3}) —/g)].at(-1)[1]);
   assert.equal(config.dataMode, 'static');
   assert.equal(config.apiBase, './');
   for (const feature of ['nowcasting', 'radar', 'pam', 'lightning', 'temperatureNormals']) {
@@ -85,6 +86,7 @@ test('la reconstruction fusionne les collectes concurrentes et garde chaque sour
   const { prepareInheritedSite } = await import('../scripts/prepare-inherited-site.mjs');
   const workspace = path.join(root, '.cache', 'consumer-merge');
   await mkdir(path.join(workspace, 'updates', 'forecast'), { recursive: true });
+  await rm(path.join(workspace, 'updates', 'foreign.json'), { force: true });
   const profile = { id: 'exemple', name: 'Bulletin', place: 'Exemple', latitude: 48.8566, longitude: 2.3522, department: '75', timezone: 'Europe/Paris' };
   await writeFile(path.join(workspace, 'site.json'), JSON.stringify(profile));
   const base = { siteId: profile.id, latitude: profile.latitude, longitude: profile.longitude };

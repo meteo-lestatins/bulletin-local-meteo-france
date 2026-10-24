@@ -1,26 +1,19 @@
-# Utiliser le code commun
+# Installation
 
-L'installation conserve son profil JSON, ses secrets et ses données. Elle suit automatiquement la branche main du moteur.
+Le dépôt du site reprend le code commun. Seul site.json contient les paramètres du lieu ; aucun code ni workflow propre à un site.
 
-Profil minimal : identifiant, nom, lieu, latitude, longitude, département et fuseau horaire. Exemple : test/fixtures/site.json. Champs facultatifs : headerAltitude, headingPrefix et publicUrl.
+Profil : identifiant, nom, lieu, latitude, longitude, département et fuseau horaire (exemple : test/fixtures/site.json). Facultatifs : headerAltitude, headingPrefix, publicUrl, githubRepository, githubBranch, meteoTokenSecret.
 
-Dans son workflow GitHub Actions, après actions/checkout :
+Secrets GitHub du dépôt du site :
+- METEO_FRANCE_API_KEY : API Météo-France (ou le nom existant indiqué par meteoTokenSecret).
+- BULLETIN_UPDATE_TOKEN : jeton limité à ce dépôt, Contents et Workflows en écriture, pour récupérer aussi les évolutions des workflows communs.
 
-    - uses: nicklausFR/bulletin-local-meteo-france@main
-      id: bulletin
-      with:
-        profile: site.json
-        state: .cache/weather/site.json
-        collect: 'true'
-      env:
-        METEO_FRANCE_API_KEY: ${{ secrets.METEO_FRANCE_API_KEY }}
+Dans admin.html, saisir un jeton autorisant Actions en écriture sur ce dépôt, puis **Mettre à jour le site**. Il reste en mémoire uniquement pendant la demande. Le workflow fusionne la branche main de nicklausFR/bulletin-local-meteo-france, conserve site.json, puis lance la construction et la publication. La page suit leur progression. Aucun serveur privé.
 
-Le dossier construit est fourni dans steps.bulletin.outputs.site-directory. L'action ne déploie rien.
+La mise à jour est volontaire. La collecte météo utilise la version déjà installée : PIAF toutes les cinq minutes, autres prévisions chaque heure, sous réserve des délais de GitHub Actions.
 
-Avec collect: 'false', seules les données déjà disponibles sont utilisées. publicUrl permet de restaurer les derniers JSON publics en cas de cache absent. Aucun token d'API n'est envoyé à cette adresse.
+Pour un nouveau site : fork du dépôt commun, ajout de site.json, secrets ci-dessus et GitHub Pages avec GitHub Actions. Pour un dépôt existant, intégrer la branche de préparation en conservant son historique de fusion (pas de squash), afin de garder un ancêtre commun avec la source.
 
-En local : npm run build -- --profile=/chemin/site.json --state=/chemin/etat.json
+En local : npm run build -- --profile=/chemin/site.json --state=/chemin/etat.json.
 
-Chaque reconstruction reprend le dernier code de main. Les exécutions programmées propagent donc les mises à jour du moteur sans intervention dans les installations.
-
-Pour une exécution comprenant plusieurs jobs, résoudre main une seule fois, vérifier le moteur puis réutiliser ce commit dans tous les jobs. Le paramètre updates fusionne les acquisitions par cycle sans remplacer les données récentes par un résultat ancien.
+Les branches de préparation ne publient rien. L’activation sur la branche principale et le déploiement restent à la charge de l’utilisateur.

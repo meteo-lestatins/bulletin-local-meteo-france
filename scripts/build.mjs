@@ -1,3 +1,4 @@
+import { execFileSync } from 'node:child_process';
 import { cp, mkdir, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -34,7 +35,15 @@ for (const file of ['index.html', 'service-worker.js']) {
 const manifest = JSON.parse(await readFile(path.join(target, 'manifest.webmanifest'), 'utf8'));
 Object.assign(manifest, { name: profile.name, short_name: profile.place || 'Météo locale' });
 await writeFile(path.join(target, 'manifest.webmanifest'), JSON.stringify(manifest));
-const runtime = { apiBase: './', dataMode: 'static', site: profile, changelogUrl: 'changelog.html', releaseNumber: version };
+let repository = profile.githubRepository || '';
+if (!repository && profile.publicUrl) {
+  const owner = new URL(profile.publicUrl).hostname.match(/^([a-z0-9-]+)\.github\.io$/i)?.[1];
+  if (owner) repository = owner + '/' + owner + '.github.io';
+}
+let revision = '';
+try { revision = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: root, encoding: 'utf8' }).trim(); } catch {}
+const management = { repository, branch: profile.githubBranch || 'main', revision };
+const runtime = { management, apiBase: './', dataMode: 'static', site: profile, changelogUrl: 'changelog.html', releaseNumber: version };
 await writeFile(path.join(target, 'runtime-config.js'), 'window.METEO_RUNTIME_CONFIG = Object.freeze(' + JSON.stringify(runtime, null, 2) + ');\n');
 await mkdir(path.join(target, 'data'), { recursive: true });
 for (const [file, data] of Object.entries(publicWeatherFiles(profile, entry, version))) {
